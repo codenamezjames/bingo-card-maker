@@ -3,7 +3,8 @@
 
   // ---------- Constants ----------
   const USER_STORE_KEY = 'bingo.userThemes';
-  const PLAIN_PAPER_KEY = 'bingo.printPlain';
+  const PRINT_BW_KEY = 'bingo.printBw';
+  const PRINT_WHITE_BG_KEY = 'bingo.printWhiteBg';
   const USER_ID_PREFIX = 'user:';
   const MIN_ITEMS = 30;
   const DEFAULT_PALETTE = { ink: '#0b1b3b', gold: '#c9a24a', paper: '#fdfaf2' };
@@ -383,11 +384,13 @@
           <label>Palette</label>
           <div class="row-inline-3">
             ${['ink','gold','paper'].map(k => `
-              <div class="color-picker">
-                <input type="color" id="f-color-${k}" value="${esc(seed.palette[k])}" />
-                <input type="text" id="f-color-${k}-hex" value="${esc(seed.palette[k])}" maxlength="7" />
+              <div class="color-field">
+                <div class="color-field-label">${k}</div>
+                <div class="color-picker">
+                  <input type="color" id="f-color-${k}" value="${esc(seed.palette[k])}" />
+                  <input type="text" id="f-color-${k}-hex" value="${esc(seed.palette[k])}" maxlength="7" />
+                </div>
               </div>
-              <div class="hint" style="margin-top:-0.5rem">${k}</div>
             `).join('')}
           </div>
           <div class="presets" id="palette-presets">
@@ -697,13 +700,8 @@
       renderCards();
     });
     qs('#print-btn').addEventListener('click', () => window.print());
-    const plain = qs('#plain-paper');
-    plain.checked = localStorage.getItem(PLAIN_PAPER_KEY) === '1';
-    document.body.classList.toggle('print-plain', plain.checked);
-    plain.addEventListener('change', () => {
-      document.body.classList.toggle('print-plain', plain.checked);
-      localStorage.setItem(PLAIN_PAPER_KEY, plain.checked ? '1' : '0');
-    });
+    wirePrintToggle(qs('#print-bw'), PRINT_BW_KEY, 'print-bw');
+    wirePrintToggle(qs('#print-white-bg'), PRINT_WHITE_BG_KEY, 'print-white-bg');
     qs('#gen-edit-btn').addEventListener('click', () => {
       if (!state.currentTheme) return;
       const rawId = state.currentTheme.id;
@@ -719,6 +717,16 @@
       } catch (_) {
         prompt('Copy this share link:', url);
       }
+    });
+  }
+
+  function wirePrintToggle(input, storageKey, bodyClass) {
+    const on = localStorage.getItem(storageKey) === '1';
+    input.checked = on;
+    document.body.classList.toggle(bodyClass, on);
+    input.addEventListener('change', () => {
+      document.body.classList.toggle(bodyClass, input.checked);
+      localStorage.setItem(storageKey, input.checked ? '1' : '0');
     });
   }
 

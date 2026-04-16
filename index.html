@@ -13,7 +13,7 @@
 <section class="view" data-view="picker">
   <header class="topbar">
     <h1><span class="brand-mark">★</span> Bingo Card Maker</h1>
-    <span style="font-size:0.8rem; opacity:0.7">Pick a theme · Print · Play</span>
+    <span class="meta">Pick a theme · Print · Play</span>
   </header>
 
   <div class="picker-wrap">
@@ -37,14 +37,16 @@
   </header>
 
   <div class="toolbar">
-    <label>Cards: <input type="number" id="count" min="1" max="12" value="4" /></label>
-    <label>Seed: <input type="text" id="seed" maxlength="16" /></label>
-    <button id="shuffle">🔀 Shuffle</button>
-    <button class="secondary" id="print-btn">🖨️ Print</button>
-    <label title="Print on white paper, ink-saving"><input type="checkbox" id="plain-paper" /> Plain paper</label>
+    <label class="label">Cards <input type="number" id="count" min="1" max="12" value="4" /></label>
+    <label class="label">Seed <input type="text" id="seed" maxlength="16" /></label>
+    <button class="primary" id="shuffle">🔀 Shuffle</button>
+    <button id="print-btn">🖨️ Print</button>
+    <span class="divider" aria-hidden="true"></span>
+    <label class="checkbox" title="Convert theme to black, white, and grey for printing"><input type="checkbox" id="print-bw" /> Black &amp; white</label>
+    <label class="checkbox" title="Keep theme colors but print on white paper"><input type="checkbox" id="print-white-bg" /> White background</label>
     <div class="spacer"></div>
-    <button class="secondary" id="gen-edit-btn" style="display:none">✎ Edit</button>
-    <button class="secondary" id="gen-share-btn" style="display:none">🔗 Share link</button>
+    <button id="gen-edit-btn" style="display:none">✎ Edit</button>
+    <button id="gen-share-btn" style="display:none">🔗 Share link</button>
   </div>
 
   <div id="cards"></div>
