@@ -16,10 +16,17 @@
     },
     {
       "id": "zoo",
-      "name": "Zoo & Aquarium",
+      "name": "Zoo",
       "emoji": "🦁",
-      "description": "For the animal lovers — find them doing something interesting.",
+      "description": "A day at the zoo — find the animals doing something interesting.",
       "palette": { "ink": "#1f4d2a", "gold": "#c88a2b", "paper": "#f5efdd" }
+    },
+    {
+      "id": "aquarium",
+      "name": "Aquarium",
+      "emoji": "🐠",
+      "description": "Glass walls, blue lights, jellyfish — spot it before the kids run off.",
+      "palette": { "ink": "#14524f", "gold": "#e47a3f", "paper": "#f3faf9" }
     },
     {
       "id": "grocery-store",

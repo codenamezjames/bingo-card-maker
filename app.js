@@ -3,6 +3,7 @@
 
   // ---------- Constants ----------
   const USER_STORE_KEY = 'bingo.userThemes';
+  const PLAIN_PAPER_KEY = 'bingo.printPlain';
   const USER_ID_PREFIX = 'user:';
   const MIN_ITEMS = 30;
   const DEFAULT_PALETTE = { ink: '#0b1b3b', gold: '#c9a24a', paper: '#fdfaf2' };
@@ -696,6 +697,13 @@
       renderCards();
     });
     qs('#print-btn').addEventListener('click', () => window.print());
+    const plain = qs('#plain-paper');
+    plain.checked = localStorage.getItem(PLAIN_PAPER_KEY) === '1';
+    document.body.classList.toggle('print-plain', plain.checked);
+    plain.addEventListener('change', () => {
+      document.body.classList.toggle('print-plain', plain.checked);
+      localStorage.setItem(PLAIN_PAPER_KEY, plain.checked ? '1' : '0');
+    });
     qs('#gen-edit-btn').addEventListener('click', () => {
       if (!state.currentTheme) return;
       const rawId = state.currentTheme.id;

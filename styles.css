@@ -573,4 +573,23 @@ button {
     transform: none !important;
   }
   @page { size: letter; margin: 0.3in; }
+
+  /* Plain-paper mode: override theme palette for ink-saving prints. */
+  body.print-plain .sheet {
+    --paper: #ffffff !important;
+    --ink: #000000 !important;
+    --gold: #555555 !important;
+    --rule: #000000 !important;
+  }
+  body.print-plain .sheet .cell.free {
+    background: #ffffff;
+    color: #000000;
+    border-right: 2px solid #000;
+    border-bottom: 2px solid #000;
+  }
+  body.print-plain .sheet .cell.free::before {
+    color: #000000;
+  }
+  body.print-plain .sheet .header .sub,
+  body.print-plain .sheet .footer { color: #444 !important; }
 }
