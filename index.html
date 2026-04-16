@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bingo Card Maker</title>
+<meta name="description" content="Printable bingo cards from a library of themes — or make your own." />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ========== Picker view ========== -->
+<section class="view" data-view="picker">
+  <header class="topbar">
+    <h1><span class="brand-mark">★</span> Bingo Card Maker</h1>
+    <span style="font-size:0.8rem; opacity:0.7">Pick a theme · Print · Play</span>
+  </header>
+
+  <div class="picker-wrap">
+    <div class="intro">
+      <h2>Pick a bingo theme</h2>
+      <p>Pre-built for the usual family outings — or make your own and save it in your browser.</p>
+      <div class="picker-actions">
+        <button class="primary" id="new-btn">+ Create your own</button>
+        <button id="surprise-btn">🎲 Surprise me</button>
+      </div>
+    </div>
+    <div class="picker-grid" id="picker-grid"></div>
+  </div>
+</section>
+
+<!-- ========== Generator view ========== -->
+<section class="view generator" data-view="generator">
+  <header class="topbar">
+    <h1><span class="brand-mark">★</span> Bingo Card Maker</h1>
+    <a class="ghost" href="#/">← Back to themes</a>
+  </header>
+
+  <div class="toolbar">
+    <label>Cards: <input type="number" id="count" min="1" max="12" value="4" /></label>
+    <label>Seed: <input type="text" id="seed" maxlength="16" /></label>
+    <button id="shuffle">🔀 Shuffle</button>
+    <button class="secondary" id="print-btn">🖨️ Print</button>
+    <div class="spacer"></div>
+    <button class="secondary" id="gen-edit-btn" style="display:none">✎ Edit</button>
+    <button class="secondary" id="gen-share-btn" style="display:none">🔗 Share link</button>
+  </div>
+
+  <div id="cards"></div>
+</section>
+
+<!-- ========== Builder view ========== -->
+<section class="view" data-view="builder">
+  <header class="topbar">
+    <h1><span class="brand-mark">★</span> Bingo Card Maker</h1>
+    <a class="ghost" href="#/">← Back to themes</a>
+  </header>
+  <div class="builder-wrap" id="builder-root"></div>
+</section>
+
+<!-- ========== Import view ========== -->
+<section class="view" data-view="import">
+  <header class="topbar">
+    <h1><span class="brand-mark">★</span> Bingo Card Maker</h1>
+    <a class="ghost" href="#/">Cancel</a>
+  </header>
+  <div id="import-root"></div>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>

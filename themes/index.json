@@ -1,0 +1,46 @@
+{
+  "themes": [
+    {
+      "id": "naval-aviation",
+      "name": "Naval Aviation Museum",
+      "emoji": "✈️",
+      "description": "Scavenger hunt for the museum — jets, helmets, helicopters.",
+      "palette": { "ink": "#0b1b3b", "gold": "#c9a24a", "paper": "#fdfaf2" }
+    },
+    {
+      "id": "road-trip",
+      "name": "Road Trip",
+      "emoji": "🛣️",
+      "description": "The classic. Spot it from the backseat window.",
+      "palette": { "ink": "#8a1e1e", "gold": "#1f3f7a", "paper": "#fff4da" }
+    },
+    {
+      "id": "zoo",
+      "name": "Zoo & Aquarium",
+      "emoji": "🦁",
+      "description": "For the animal lovers — find them doing something interesting.",
+      "palette": { "ink": "#1f4d2a", "gold": "#c88a2b", "paper": "#f5efdd" }
+    },
+    {
+      "id": "grocery-store",
+      "name": "Grocery Store",
+      "emoji": "🛒",
+      "description": "For when you've dragged the family along. Survive the aisles.",
+      "palette": { "ink": "#1a3a6b", "gold": "#d98324", "paper": "#fafcff" }
+    },
+    {
+      "id": "beach-day",
+      "name": "Beach Day",
+      "emoji": "🏖️",
+      "description": "Sand, sun, and at least one lost flip-flop.",
+      "palette": { "ink": "#1a5a6b", "gold": "#e2784f", "paper": "#fff3dc" }
+    },
+    {
+      "id": "holiday-gathering",
+      "name": "Holiday Family Gathering",
+      "emoji": "🎄",
+      "description": "Warm-hearted and lightly sarcastic. Know your audience.",
+      "palette": { "ink": "#6b1a2b", "gold": "#2d5a3a", "paper": "#fdf7e8" }
+    }
+  ]
+}
