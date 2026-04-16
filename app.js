@@ -8,6 +8,12 @@
   const USER_ID_PREFIX = 'user:';
   const MIN_ITEMS = 24;
   const DRAFT_KEY = 'bingo.draft';
+  const MARKS_KEY = 'bingo.marks';
+  const WIN_LINES = [
+    [0,1,2,3,4], [5,6,7,8,9], [10,11,12,13,14], [15,16,17,18,19], [20,21,22,23,24],
+    [0,5,10,15,20], [1,6,11,16,21], [2,7,12,17,22], [3,8,13,18,23], [4,9,14,19,24],
+    [0,6,12,18,24], [4,8,12,16,20]
+  ];
   const DEFAULT_PALETTE = { ink: '#0b1b3b', gold: '#c9a24a', paper: '#fdfaf2' };
   const PRESETS = [
     { name: 'Navy & Gold',      palette: { ink: '#0b1b3b', gold: '#c9a24a', paper: '#fdfaf2' } },
@@ -147,6 +153,37 @@
   }
   function clearDraft() {
     try { localStorage.removeItem(DRAFT_KEY); } catch (_) {}
+  }
+
+  // Marks (tap-to-dauber) — keyed by theme + seed + card index
+  function markKey(themeId, seed, cardIndex) { return `${themeId}|${seed}|${cardIndex}`; }
+  function getAllMarks() {
+    try {
+      const raw = localStorage.getItem(MARKS_KEY);
+      if (!raw) return {};
+      const p = JSON.parse(raw);
+      return (p && typeof p === 'object') ? p : {};
+    } catch (_) { return {}; }
+  }
+  function setAllMarks(obj) {
+    try { localStorage.setItem(MARKS_KEY, JSON.stringify(obj)); } catch (_) {}
+  }
+  function getCardMarks(themeId, seed, cardIndex) {
+    const m = getAllMarks()[markKey(themeId, seed, cardIndex)];
+    if (Array.isArray(m) && m.length === 25) return m.slice();
+    const fresh = new Array(25).fill(false);
+    fresh[12] = true;  // FREE is always marked
+    return fresh;
+  }
+  function setCardMarks(themeId, seed, cardIndex, marks) {
+    const all = getAllMarks();
+    all[markKey(themeId, seed, cardIndex)] = marks;
+    setAllMarks(all);
+  }
+  function clearMarksForView(themeId, seed, cardCount) {
+    const all = getAllMarks();
+    for (let i = 0; i < cardCount; i++) delete all[markKey(themeId, seed, i)];
+    setAllMarks(all);
   }
 
   // ---------- Theme loading ----------
@@ -349,6 +386,54 @@
     let html = '';
     for (let i = 0; i < n; i++) html += makeCard(theme, i, state.seed);
     host.innerHTML = html;
+    wireCardMarks(theme);
+  }
+
+  function wireCardMarks(theme) {
+    qsa('#cards .sheet').forEach((sheetEl, cardIndex) => {
+      const marks = getCardMarks(theme.id, state.seed, cardIndex);
+      const cells = qsa('.cell', sheetEl);
+      cells.forEach((cellEl, cellIdx) => {
+        cellEl.classList.toggle('marked', !!marks[cellIdx]);
+        if (cellIdx === 12) return;  // FREE — not interactive
+        cellEl.setAttribute('role', 'button');
+        cellEl.setAttribute('tabindex', '0');
+        cellEl.setAttribute('aria-pressed', marks[cellIdx] ? 'true' : 'false');
+        const toggle = () => {
+          const current = getCardMarks(theme.id, state.seed, cardIndex);
+          current[cellIdx] = !current[cellIdx];
+          setCardMarks(theme.id, state.seed, cardIndex, current);
+          cellEl.classList.toggle('marked', current[cellIdx]);
+          cellEl.setAttribute('aria-pressed', current[cellIdx] ? 'true' : 'false');
+          checkWin(sheetEl, current);
+        };
+        cellEl.addEventListener('click', toggle);
+        cellEl.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+        });
+      });
+      // Seed the win display on initial render (without toast)
+      checkWin(sheetEl, marks, { silent: true });
+    });
+  }
+
+  function checkWin(sheetEl, marks, opts) {
+    const winCells = new Set();
+    let hasWin = false;
+    for (const line of WIN_LINES) {
+      if (line.every(i => marks[i])) {
+        hasWin = true;
+        line.forEach(i => winCells.add(i));
+      }
+    }
+    const cells = qsa('.cell', sheetEl);
+    cells.forEach((c, i) => c.classList.toggle('winning', winCells.has(i)));
+    if (hasWin && !sheetEl.dataset.won) {
+      sheetEl.dataset.won = '1';
+      if (!(opts && opts.silent)) flashToast('🎉 BINGO!');
+    } else if (!hasWin) {
+      delete sheetEl.dataset.won;
+    }
   }
 
   function renderBuilder(editingId) {
@@ -768,6 +853,13 @@
       renderCards();
     });
     qs('#print-btn').addEventListener('click', () => window.print());
+    const clearBtn = qs('#clear-marks-btn');
+    if (clearBtn) clearBtn.addEventListener('click', () => {
+      if (!state.currentTheme) return;
+      if (!confirm('Clear all dauber marks on the cards you see?')) return;
+      clearMarksForView(state.currentTheme.id, state.seed, state.count);
+      renderCards();
+    });
     wirePrintToggle(qs('#print-bw'), PRINT_BW_KEY, 'print-bw');
     wirePrintToggle(qs('#print-white-bg'), PRINT_WHITE_BG_KEY, 'print-white-bg');
     qs('#gen-edit-btn').addEventListener('click', () => {
