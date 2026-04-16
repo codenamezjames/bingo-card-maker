@@ -721,6 +721,7 @@
   }
 
   function wirePrintToggle(input, storageKey, bodyClass) {
+    if (!input) return;
     const on = localStorage.getItem(storageKey) === '1';
     input.checked = on;
     document.body.classList.toggle(bodyClass, on);
