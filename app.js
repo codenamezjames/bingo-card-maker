@@ -6,7 +6,8 @@
   const PRINT_BW_KEY = 'bingo.printBw';
   const PRINT_WHITE_BG_KEY = 'bingo.printWhiteBg';
   const USER_ID_PREFIX = 'user:';
-  const MIN_ITEMS = 30;
+  const MIN_ITEMS = 24;
+  const DRAFT_KEY = 'bingo.draft';
   const DEFAULT_PALETTE = { ink: '#0b1b3b', gold: '#c9a24a', paper: '#fdfaf2' };
   const PRESETS = [
     { name: 'Navy & Gold',      palette: { ink: '#0b1b3b', gold: '#c9a24a', paper: '#fdfaf2' } },
@@ -122,6 +123,30 @@
   }
   function getUserTheme(id) {
     return getUserThemes().find(t => t.id === id) || null;
+  }
+
+  // Builder draft — only used for /new (not /edit/:id)
+  function loadDraft() {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return null;
+      const d = JSON.parse(raw);
+      if (!d || typeof d !== 'object') return null;
+      // An empty draft (no user input yet) shouldn't count as a draft.
+      const hasContent =
+        (d.name && d.name.trim()) ||
+        (Array.isArray(d.items) && d.items.length > 0) ||
+        (d.description && d.description.trim());
+      return hasContent ? d : null;
+    } catch (_) { return null; }
+  }
+  function saveDraft(theme) {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(theme));
+    } catch (_) {}
+  }
+  function clearDraft() {
+    try { localStorage.removeItem(DRAFT_KEY); } catch (_) {}
   }
 
   // ---------- Theme loading ----------
@@ -275,7 +300,7 @@
     surprise.disabled = all.length === 0;
   }
 
-  async function renderGenerator(id) {
+  async function renderGenerator(id, seedFromUrl) {
     let theme;
     try {
       theme = await loadTheme(id);
@@ -285,18 +310,29 @@
       return;
     }
     state.currentTheme = theme;
-    if (!state.seed) state.seed = newSeed();
+    state.seed = seedFromUrl || state.seed || newSeed();
 
     show('generator');
 
     const isUser = id.startsWith(USER_ID_PREFIX);
     qs('#gen-edit-btn').style.display = isUser ? '' : 'none';
-    qs('#gen-share-btn').style.display = isUser ? '' : 'none';
+    qs('#gen-share-btn').style.display = '';
 
     qs('#count').value = state.count;
     qs('#seed').value = state.seed;
 
+    syncSeedToUrl();
     renderCards();
+  }
+
+  // Keep the URL in sync with state.seed without adding history entries.
+  function syncSeedToUrl() {
+    if (!state.currentTheme) return;
+    const id = state.currentTheme.id.startsWith(USER_ID_PREFIX)
+      ? state.currentTheme.id
+      : state.currentTheme.id;
+    const hash = `#/theme/${encodeURIComponent(id)}?seed=${encodeURIComponent(state.seed)}`;
+    if (location.hash !== hash) history.replaceState(null, '', location.pathname + hash);
   }
 
   function renderCards() {
@@ -318,7 +354,8 @@
   function renderBuilder(editingId) {
     show('builder');
     const existing = editingId ? getUserTheme(editingId) : null;
-    const seed = existing || {
+    const draft = !editingId ? loadDraft() : null;
+    const seed = existing || draft || {
       id: '',
       name: '',
       emoji: '🎲',
@@ -330,12 +367,17 @@
       palette: { ...DEFAULT_PALETTE },
       items: []
     };
+    const draftRestored = !editingId && !!draft;
 
     const host = qs('#builder-root');
     host.innerHTML = `
       <div class="builder-form">
         <h2>${editingId ? 'Edit theme' : 'Create a theme'}</h2>
         <div class="builder-warning" id="builder-warning"></div>
+        ${draftRestored ? `<div class="draft-restored" id="draft-restored">
+          <span>🕓 Picked up where you left off.</span>
+          <button type="button" class="ghost" id="draft-discard">Start fresh</button>
+        </div>` : ''}
 
         <div class="row-inline">
           <div class="form-row">
@@ -475,20 +517,27 @@
       count.textContent = `${n} item${n === 1 ? '' : 's'} · minimum ${MIN_ITEMS}`;
       count.className = 'hint ' + (n >= MIN_ITEMS ? 'ok' : 'warn');
       const previewHost = qs('#preview-root');
-      if (theme.items.length < 24) {
-        previewHost.innerHTML = `<div style="text-align:center; color:#777; font-size:0.85rem; padding:2rem">Add at least 24 items to preview</div>`;
+      if (theme.items.length < MIN_ITEMS) {
+        previewHost.innerHTML = `<div style="text-align:center; color:#777; font-size:0.85rem; padding:2rem">Add at least ${MIN_ITEMS} items to preview</div>`;
       } else {
         previewHost.innerHTML = makeCard(theme, 0, 'preview');
       }
     }, 120);
 
+    const saveDraftDebounced = debounce(() => {
+      if (editingId) return;  // only auto-save for new themes
+      saveDraft(readTheme());
+    }, 400);
+
+    const onChange = () => { updatePreview(); saveDraftDebounced(); };
+
     // Sync color picker <-> hex input pairs
     const syncColor = (picker, hex) => {
-      picker.addEventListener('input', () => { hex.value = picker.value; updatePreview(); });
+      picker.addEventListener('input', () => { hex.value = picker.value; onChange(); });
       hex.addEventListener('input', () => {
         const v = hex.value.trim();
         if (/^#[0-9a-fA-F]{6}$/.test(v)) picker.value = v;
-        updatePreview();
+        onChange();
       });
     };
     syncColor(form.colorInk, form.colorInkHex);
@@ -497,7 +546,7 @@
 
     // Live preview on any other input
     ['name','emoji','desc','eyebrow','subtitle','free1','free2','footer','items'].forEach(k => {
-      form[k].addEventListener('input', updatePreview);
+      form[k].addEventListener('input', onChange);
     });
 
     // Preset swatches
@@ -507,9 +556,18 @@
         form.colorInk.value = form.colorInkHex.value = p.ink;
         form.colorGold.value = form.colorGoldHex.value = p.gold;
         form.colorPaper.value = form.colorPaperHex.value = p.paper;
-        updatePreview();
+        onChange();
       });
     });
+
+    // Draft restore banner
+    if (draftRestored) {
+      qs('#draft-discard').addEventListener('click', () => {
+        if (!confirm('Discard the draft and start fresh?')) return;
+        clearDraft();
+        renderBuilder(null);  // re-render from blank seed
+      });
+    }
 
     // Save
     qs('#btn-save').addEventListener('click', () => {
@@ -523,6 +581,7 @@
         while (existingIds.includes(theme.id)) { theme.id = `${base}-${i++}`; }
       }
       saveUserTheme(theme);
+      if (!editingId) clearDraft();
       location.hash = `#/theme/${USER_ID_PREFIX}${theme.id}`;
     });
 
@@ -593,7 +652,7 @@
     form.items.value = Array.isArray(t.items) ? t.items.join('\n') : '';
   }
 
-  function renderImport(encoded) {
+  function renderImport(encoded, seed) {
     show('import');
     let theme;
     try {
@@ -632,7 +691,8 @@
       while (existing.includes(id)) id = `${baseId}-${i++}`;
       theme.id = id;
       saveUserTheme(theme);
-      location.hash = `#/theme/${USER_ID_PREFIX}${id}`;
+      const suffix = seed ? `?seed=${encodeURIComponent(seed)}` : '';
+      location.hash = `#/theme/${USER_ID_PREFIX}${id}${suffix}`;
     });
   }
   function wireImportActions() {
@@ -648,31 +708,37 @@
     if (!h || h === '/') return { name: 'picker' };
     const [pathPart, queryPart] = h.split('?');
     const parts = pathPart.split('/').filter(Boolean);
+    const params = new URLSearchParams(queryPart || '');
     if (parts[0] === 'theme' && parts[1]) {
-      return { name: 'generator', id: decodeURIComponent(parts.slice(1).join('/')) };
+      return {
+        name: 'generator',
+        id: decodeURIComponent(parts.slice(1).join('/')),
+        seed: params.get('seed')
+      };
     }
     if (parts[0] === 'new') return { name: 'builder' };
     if (parts[0] === 'edit' && parts[1]) {
       return { name: 'builder', id: decodeURIComponent(parts[1]) };
     }
     if (parts[0] === 'import') {
-      const params = new URLSearchParams(queryPart || '');
-      return { name: 'import', data: params.get('data') };
+      return { name: 'import', data: params.get('data'), seed: params.get('seed') };
     }
     return { name: 'picker' };
   }
 
   function route() {
     const r = parseHash();
-    // reset per-navigation state
+    // reset per-navigation state, but preserve state.seed when just the seed changed on the same theme
     if (r.name !== 'generator') {
       state.currentTheme = null;
       state.seed = null;
+    } else if (state.currentTheme && state.currentTheme.id !== r.id) {
+      state.seed = null;
     }
     if (r.name === 'picker') return renderPicker();
-    if (r.name === 'generator') return renderGenerator(r.id);
+    if (r.name === 'generator') return renderGenerator(r.id, r.seed);
     if (r.name === 'builder') return renderBuilder(r.id);
-    if (r.name === 'import') return renderImport(r.data || '');
+    if (r.name === 'import') return renderImport(r.data || '', r.seed);
     renderPicker();
   }
 
@@ -690,6 +756,7 @@
     qs('#shuffle').addEventListener('click', () => {
       state.seed = newSeed();
       qs('#seed').value = state.seed;
+      syncSeedToUrl();
       renderCards();
     });
     qs('#count').addEventListener('change', renderCards);
@@ -697,6 +764,7 @@
       const v = qs('#seed').value.trim() || newSeed();
       state.seed = v;
       qs('#seed').value = v;
+      syncSeedToUrl();
       renderCards();
     });
     qs('#print-btn').addEventListener('click', () => window.print());
@@ -707,15 +775,81 @@
       const rawId = state.currentTheme.id;
       location.hash = `#/edit/${rawId}`;
     });
-    qs('#gen-share-btn').addEventListener('click', async () => {
+    qs('#gen-share-btn').addEventListener('click', () => {
       if (!state.currentTheme) return;
-      const theme = state.currentTheme;
-      const url = `${location.origin}${location.pathname}#/import?data=${encodeTheme(theme)}`;
+      openShareModal(state.currentTheme, state.seed);
+    });
+
+    wireShareModal();
+  }
+
+  // ---------- Share modal ----------
+  function buildShareUrl(theme, seed) {
+    const isUser = theme.id && theme.id.startsWith(USER_ID_PREFIX);
+    const base = `${location.origin}${location.pathname}`;
+    const seedParam = seed ? `seed=${encodeURIComponent(seed)}` : '';
+    if (isUser) {
+      // user-prefixed means it was loaded from localStorage; plain id is stored
+      const plainId = theme.id.slice(USER_ID_PREFIX.length);
+      const stored = getUserTheme(plainId);
+      const payload = stored || theme;
+      const data = encodeTheme(payload);
+      return `${base}#/import?data=${data}${seedParam ? '&' + seedParam : ''}`;
+    }
+    return `${base}#/theme/${encodeURIComponent(theme.id)}${seedParam ? '?' + seedParam : ''}`;
+  }
+
+  function openShareModal(theme, seed) {
+    const url = buildShareUrl(theme, seed);
+    const modal = qs('#share-modal');
+    qs('#share-url').value = url;
+    qs('#share-hint').textContent = theme.id && theme.id.startsWith(USER_ID_PREFIX)
+      ? 'Anyone opening this link can import your custom theme and play the same cards.'
+      : 'Anyone opening this link sees the same theme and the same shuffled cards.';
+
+    // Render QR
+    const qrHost = qs('#qr-code');
+    qrHost.innerHTML = '';
+    try {
+      // qrcode-generator: type 0 = auto-size; error correct 'M'
+      qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+      const qr = qrcode(0, 'M');
+      qr.addData(url);
+      qr.make();
+      qrHost.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+    } catch (e) {
+      qrHost.innerHTML = '<div class="qr-fallback">URL too long for a QR code — use Copy instead.</div>';
+    }
+
+    modal.hidden = false;
+    setTimeout(() => qs('#share-url').select(), 50);
+  }
+
+  function closeShareModal() {
+    const modal = qs('#share-modal');
+    if (modal) modal.hidden = true;
+  }
+
+  function wireShareModal() {
+    const modal = qs('#share-modal');
+    if (!modal || modal.dataset.wired) return;
+    modal.dataset.wired = '1';
+    qs('#share-close').addEventListener('click', closeShareModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeShareModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.hidden) closeShareModal();
+    });
+    qs('#copy-url').addEventListener('click', async () => {
+      const url = qs('#share-url').value;
       try {
         await navigator.clipboard.writeText(url);
-        flashToast('Share link copied to clipboard!');
+        flashToast('Link copied!');
       } catch (_) {
-        prompt('Copy this share link:', url);
+        qs('#share-url').select();
+        document.execCommand && document.execCommand('copy');
+        flashToast('Link copied!');
       }
     });
   }

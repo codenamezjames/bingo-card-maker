@@ -46,11 +46,28 @@
     <label class="checkbox" title="Keep theme colors but print on white paper"><input type="checkbox" id="print-white-bg" /> White background</label>
     <div class="spacer"></div>
     <button id="gen-edit-btn" style="display:none">✎ Edit</button>
-    <button id="gen-share-btn" style="display:none">🔗 Share link</button>
+    <button id="gen-share-btn" style="display:none">🔗 Share</button>
   </div>
 
   <div id="cards"></div>
 </section>
+
+<!-- ========== Share modal (global) ========== -->
+<div class="modal-backdrop" id="share-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="share-title">
+    <div class="modal-header">
+      <h2 id="share-title">Share this bingo game</h2>
+      <button class="ghost modal-close" id="share-close" aria-label="Close">×</button>
+    </div>
+    <p class="modal-hint" id="share-hint"></p>
+    <div class="qr-container" id="qr-code"></div>
+    <div class="url-row">
+      <input type="text" id="share-url" readonly />
+      <button class="primary" id="copy-url">Copy</button>
+    </div>
+    <p class="modal-footnote">Scan the QR code on another phone, or copy and send the link.</p>
+  </div>
+</div>
 
 <!-- ========== Builder view ========== -->
 <section class="view" data-view="builder">
@@ -70,6 +87,7 @@
   <div id="import-root"></div>
 </section>
 
+<script src="vendor/qrcode.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
